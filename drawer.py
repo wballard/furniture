@@ -30,13 +30,17 @@ depth = 300
 height = 50
 
 # parameters controlling the drawer details
-sheet_thickness = 12.7
+sheet_thickness = 6.35
 floor_inset = 12.7
 slide_width = 30
 margin = 10
-joint_steps = 4
+joint_steps = 2
 
 # %%
+
+# now for the nice linear run making the SVG
+drawing = svgwrite.Drawing(
+    size=(f'{width + 2*height + margin}px', f'{depth + 2*height + margin}px'))
 
 
 class Point(typing.NamedTuple):
@@ -56,6 +60,7 @@ class Point(typing.NamedTuple):
 class Orientation(Enum):
     HORIZONTAL = 1
     VERTICAL = 2
+
 
 class Alternation(Enum):
     EVEN = 1
@@ -96,10 +101,30 @@ def finger_notches(start: Point, end: Point, orientation: Orientation, alternati
     return buffer
 
 
+def slots(start: Point, end: Point, orientation: Orientation, alternation: Alternation, number, amplitude):
+
+    delta = end - start
+    if orientation == Orientation.HORIZONTAL:
+        step_x = delta.x / (number * 2 + 1)
+        stride = Point(step_x, 0)
+        inset = Point(step_x, amplitude)
+    if orientation == Orientation.VERTICAL:
+        step_y = delta.y / (number * 2 + 1)
+        stride = Point(0, step_y)
+        inset = Point(amplitude, step_y)
+    if alternation == Alternation.EVEN:
+        alternations = ['keep', 'notch'] * number + ['keep']
+    if alternation == Alternation.ODD:
+        alternations = ['notch', 'keep'] * number + ['notch']
+
+    at = start
+    for direction in alternations:
+        if direction == 'notch':
+            drawing.add(drawing.rect(at, inset, stroke='red'))
+        at = at + stride
+
+
 # %%
-# now for the nice linear run making the SVG
-drawing = svgwrite.Drawing(
-    size=(f'{width + 2*height + margin}px', f'{depth + 2*height + margin}px'))
 
 # the actual cuts will be a series of poly-lines, which are just
 # a series of points -- let's start with the left side
@@ -164,7 +189,8 @@ def draw_end(upper_left):
 
 def draw_bottom():
     trace = []
-    upper_left = Point(margin + height + sheet_thickness, margin + height + sheet_thickness)
+    upper_left = Point(margin + height + sheet_thickness,
+                       margin + height + sheet_thickness)
     upper_right = upper_left + Point(width - 2 * sheet_thickness, 0)
     trace.extend(finger_notches(upper_left, upper_right,
                                 Orientation.HORIZONTAL, Alternation.EVEN, joint_steps, sheet_thickness))
@@ -179,10 +205,37 @@ def draw_bottom():
     drawing.add(drawing.polyline(trace, stroke='red'))
 
 
+def draw_slots():
+    back_slots_from = Point(margin + height + sheet_thickness,
+                            margin + height - floor_inset - sheet_thickness)
+    back_slots_to = back_slots_from + Point(width - 2 * sheet_thickness, 0)
+    slots(back_slots_from, back_slots_to, Orientation.HORIZONTAL,
+          Alternation.ODD, joint_steps, sheet_thickness)
+
+    front_slots_from = Point(margin + height + sheet_thickness,
+                             margin + height + depth + floor_inset)
+    front_slots_to = front_slots_from + Point(width - 2 * sheet_thickness, 0)
+    slots(front_slots_from, front_slots_to, Orientation.HORIZONTAL,
+          Alternation.ODD, joint_steps, sheet_thickness)
+
+    left_slots_from = Point(margin + height - floor_inset - sheet_thickness,
+                            margin + height + sheet_thickness)
+    left_slots_to = left_slots_from + Point(0, depth - 2 * sheet_thickness)
+    slots(left_slots_from, left_slots_to, Orientation.VERTICAL,
+          Alternation.ODD, joint_steps, sheet_thickness)
+
+    right_slots_from = Point(margin + height + width + floor_inset,
+                             margin + height + sheet_thickness)
+    right_slots_to = right_slots_from + Point(0, depth - 2 * sheet_thickness)
+    slots(right_slots_from, right_slots_to, Orientation.VERTICAL,
+          Alternation.ODD, joint_steps, sheet_thickness)
+
+
+# %%
 draw_left()
 draw_right()
 draw_back()
 draw_front()
 draw_bottom()
-print(drawing.tostring())
+draw_slots()
 display(SVG(drawing.tostring()))
