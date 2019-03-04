@@ -7,6 +7,7 @@ jupyter so you can see what is happening as you tweak the parameters.
 import svgwrite
 import typing
 import math
+from enum import Enum
 from IPython.core.display import display, SVG
 
 # %%
@@ -52,28 +53,39 @@ class Point(typing.NamedTuple):
         return Point(self.x - other.x, self.y - other.y)
 
 
-def horizontal_finger_notches(start: Point, end: Point, number, amplitude):
+class Orientation(Enum):
+    HORIZONTAL = 1
+    VERTICAL = 2
+
+
+def finger_notches(start: Point, end: Point, orientation: Orientation, number, amplitude):
     delta = end - start
     buffer = []
-    step_x = delta.x / (number * 2 + 1)
+    if orientation == Orientation.HORIZONTAL:
+        step_x = delta.x / (number * 2 + 1)
+        stride = Point(step_x, 0)
+        inset = Point(0, amplitude)
+        alternations = ['tab', 'notch'] * number + ['tab']
+    if orientation == Orientation.VERTICAL:
+        step_y = delta.y / (number * 2 + 1)
+        stride = Point(0, step_y)
+        inset = Point(amplitude, 0)
+        alternations = ['notch', 'tab'] * number + ['notch']
 
-    # now alternate tab and notching -- we'll have number+1 tabs
-    # and number notches -- tab, notch
-    alternations = ['tab', 'notch'] * number + ['tab']
     at = start
     for direction in alternations:
         if direction == 'tab':
             buffer.append(at)
-            at = at + Point(step_x, 0)
+            at = at + stride
             buffer.append(at)
         if direction == 'notch':
             buffer.append(at)
-            at = at + Point(0, amplitude)
+            at = at + inset
             buffer.append(at)
-            at = at + Point(step_x, 0)
+            at = at + stride
             buffer.append(at)
             buffer.append(at)
-            at = at - Point(0, amplitude)
+            at = at - inset
 
     return buffer
 
@@ -92,9 +104,11 @@ def draw_left():
     upper_left = Point(margin, margin + height)
     draw_side(upper_left)
 
+
 def draw_right():
     upper_left = Point(margin + height + width, margin + height)
     draw_side(upper_left)
+
 
 def draw_side(upper_left):
     # a side with notches for joinery
@@ -102,21 +116,67 @@ def draw_side(upper_left):
     # start at the upper left corner, let's draw clockwise
     # to the upper right
     upper_right = upper_left + Point(height, 0)
-    trace.extend(horizontal_finger_notches(upper_left, upper_right,
-                         joint_steps, sheet_thickness))
+    trace.extend(finger_notches(upper_left, upper_right, Orientation.HORIZONTAL,
+                                joint_steps, sheet_thickness))
     # then a straight side
-    lower_right = upper_right + Point(0, depth)                     
+    lower_right = upper_right + Point(0, depth)
     trace.append(lower_right)
     lower_left = upper_left + Point(0, depth)
     # more notches for the front
-    trace.extend(horizontal_finger_notches(lower_right, lower_left,
-                         joint_steps, -sheet_thickness))
+    trace.extend(finger_notches(lower_right, lower_left, Orientation.HORIZONTAL,
+                                joint_steps, -sheet_thickness))
     trace.append(upper_left)
 
     drawing.add(drawing.polyline(trace, stroke='red'))
 
 
+def draw_back():
+    upper_left = Point(margin + height, margin)
+    draw_end(upper_left)
+
+
+def draw_front():
+    upper_left = Point(margin + height, margin + height + depth)
+    draw_end(upper_left)
+
+
+def draw_end(upper_left):
+    # and end with joinery that connects to the sides
+    trace = []
+    trace.append(upper_left)
+    upper_right = upper_left + Point(width, 0)
+    trace.append(upper_right)
+    lower_right = upper_right + Point(0, height)
+    trace.extend(finger_notches(upper_right, lower_right, Orientation.VERTICAL,
+                                joint_steps, -sheet_thickness))
+    lower_left = lower_right - Point(width, 0)
+    trace.append(lower_left)
+    trace.extend(finger_notches(lower_left, upper_left, Orientation.VERTICAL,
+                                joint_steps, sheet_thickness))
+    drawing.add(drawing.polyline(trace, stroke='red'))
+
+
+def draw_bottom():
+    trace = []
+    upper_left = Point(margin + height, margin + height)
+    upper_right = upper_left + Point(width, 0)
+    trace.extend(finger_notches(upper_left, upper_right,
+                                Orientation.HORIZONTAL, joint_steps, sheet_thickness))
+    lower_right = upper_right + Point(0, depth)
+    trace.extend(finger_notches(upper_right, lower_right,
+                                Orientation.VERTICAL, joint_steps, -sheet_thickness))
+    lower_left = lower_right - Point(width, 0)
+    trace.extend(finger_notches(lower_right, lower_left,
+                                Orientation.HORIZONTAL, joint_steps, -sheet_thickness))
+    trace.extend(finger_notches(lower_left, upper_left,
+                                Orientation.VERTICAL, joint_steps, sheet_thickness))
+    drawing.add(drawing.polyline(trace, stroke='red'))
+
+
 draw_left()
 draw_right()
+draw_back()
+draw_front()
+draw_bottom()
 print(drawing.tostring())
 display(SVG(drawing.tostring()))
