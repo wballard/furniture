@@ -57,19 +57,25 @@ class Orientation(Enum):
     HORIZONTAL = 1
     VERTICAL = 2
 
+class Alternation(Enum):
+    EVEN = 1
+    ODD = 2
 
-def finger_notches(start: Point, end: Point, orientation: Orientation, number, amplitude):
+
+def finger_notches(start: Point, end: Point, orientation: Orientation, alternation: Alternation, number, amplitude):
     delta = end - start
     buffer = []
     if orientation == Orientation.HORIZONTAL:
         step_x = delta.x / (number * 2 + 1)
         stride = Point(step_x, 0)
         inset = Point(0, amplitude)
-        alternations = ['tab', 'notch'] * number + ['tab']
     if orientation == Orientation.VERTICAL:
         step_y = delta.y / (number * 2 + 1)
         stride = Point(0, step_y)
         inset = Point(amplitude, 0)
+    if alternation == Alternation.EVEN:
+        alternations = ['tab', 'notch'] * number + ['tab']
+    if alternation == Alternation.ODD:
         alternations = ['notch', 'tab'] * number + ['notch']
 
     at = start
@@ -116,14 +122,14 @@ def draw_side(upper_left):
     # start at the upper left corner, let's draw clockwise
     # to the upper right
     upper_right = upper_left + Point(height, 0)
-    trace.extend(finger_notches(upper_left, upper_right, Orientation.HORIZONTAL,
+    trace.extend(finger_notches(upper_left, upper_right, Orientation.HORIZONTAL, Alternation.EVEN,
                                 joint_steps, sheet_thickness))
     # then a straight side
     lower_right = upper_right + Point(0, depth)
     trace.append(lower_right)
     lower_left = upper_left + Point(0, depth)
     # more notches for the front
-    trace.extend(finger_notches(lower_right, lower_left, Orientation.HORIZONTAL,
+    trace.extend(finger_notches(lower_right, lower_left, Orientation.HORIZONTAL, Alternation.EVEN,
                                 joint_steps, -sheet_thickness))
     trace.append(upper_left)
 
@@ -147,29 +153,29 @@ def draw_end(upper_left):
     upper_right = upper_left + Point(width, 0)
     trace.append(upper_right)
     lower_right = upper_right + Point(0, height)
-    trace.extend(finger_notches(upper_right, lower_right, Orientation.VERTICAL,
+    trace.extend(finger_notches(upper_right, lower_right, Orientation.VERTICAL, Alternation.ODD,
                                 joint_steps, -sheet_thickness))
     lower_left = lower_right - Point(width, 0)
     trace.append(lower_left)
-    trace.extend(finger_notches(lower_left, upper_left, Orientation.VERTICAL,
+    trace.extend(finger_notches(lower_left, upper_left, Orientation.VERTICAL, Alternation.ODD,
                                 joint_steps, sheet_thickness))
     drawing.add(drawing.polyline(trace, stroke='red'))
 
 
 def draw_bottom():
     trace = []
-    upper_left = Point(margin + height, margin + height)
-    upper_right = upper_left + Point(width, 0)
+    upper_left = Point(margin + height + sheet_thickness, margin + height + sheet_thickness)
+    upper_right = upper_left + Point(width - 2 * sheet_thickness, 0)
     trace.extend(finger_notches(upper_left, upper_right,
-                                Orientation.HORIZONTAL, joint_steps, sheet_thickness))
-    lower_right = upper_right + Point(0, depth)
+                                Orientation.HORIZONTAL, Alternation.EVEN, joint_steps, sheet_thickness))
+    lower_right = upper_right + Point(0, depth - 2 * sheet_thickness)
     trace.extend(finger_notches(upper_right, lower_right,
-                                Orientation.VERTICAL, joint_steps, -sheet_thickness))
-    lower_left = lower_right - Point(width, 0)
+                                Orientation.VERTICAL, Alternation.EVEN, joint_steps, -sheet_thickness)),
+    lower_left = lower_right - Point(width - 2 * sheet_thickness, 0)
     trace.extend(finger_notches(lower_right, lower_left,
-                                Orientation.HORIZONTAL, joint_steps, -sheet_thickness))
+                                Orientation.HORIZONTAL, Alternation.EVEN, joint_steps, -sheet_thickness))
     trace.extend(finger_notches(lower_left, upper_left,
-                                Orientation.VERTICAL, joint_steps, sheet_thickness))
+                                Orientation.VERTICAL, Alternation.EVEN, joint_steps, sheet_thickness))
     drawing.add(drawing.polyline(trace, stroke='red'))
 
 
