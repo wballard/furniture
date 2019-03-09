@@ -25,22 +25,23 @@ All units are in millimeters unless otherwise noted.
 '''
 
 # overall bounds of the drawer
-width = 150
-depth = 300
+width = 80
+depth = 160
 height = 50
 
 # parameters controlling the drawer details
-sheet_thickness = 6.35
-floor_inset = 12.7
+sheet_thickness = 3.2
+floor_inset = 6
 slide_width = 30
 margin = 10
-joint_steps = 2
+joint_steps = 1
 
 # %%
 
 # now for the nice linear run making the SVG
-drawing = svgwrite.Drawing(
-    size=(f'{width + 2*height + margin}px', f'{depth + 2*height + margin}px'))
+drawing = svgwrite.Drawing('drawer.svg',
+    size=(f'{width + 2*height + margin}mm', f'{depth + 2*height + margin}mm'),
+    viewBox=(f'0 0 {width + 2*height + margin} {depth + 2*height + margin}'))
 
 
 class Point(typing.NamedTuple):
@@ -239,3 +240,4 @@ draw_front()
 draw_bottom()
 draw_slots()
 display(SVG(drawing.tostring()))
+drawing.save()
