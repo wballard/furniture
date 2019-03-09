@@ -25,13 +25,13 @@ All units are in millimeters unless otherwise noted.
 '''
 
 # overall bounds of the drawer
-width = 80
-depth = 160
-height = 50
+width = 40
+depth = 80
+height = 40
 
 # parameters controlling the drawer details
-sheet_thickness = 3.2
-floor_inset = 6
+sheet_thickness = 3.175
+floor_inset = 6.35
 slide_width = 30
 margin = 10
 joint_steps = 1
@@ -190,15 +190,15 @@ def draw_end(upper_left):
 
 def draw_bottom():
     trace = []
-    upper_left = Point(margin + height + sheet_thickness,
-                       margin + height + sheet_thickness)
-    upper_right = upper_left + Point(width - 2 * sheet_thickness, 0)
+    upper_left = Point(margin + height,
+                       margin + height)
+    upper_right = upper_left + Point(width, 0)
     trace.extend(finger_notches(upper_left, upper_right,
                                 Orientation.HORIZONTAL, Alternation.EVEN, joint_steps, sheet_thickness))
-    lower_right = upper_right + Point(0, depth - 2 * sheet_thickness)
+    lower_right = upper_right + Point(0, depth)
     trace.extend(finger_notches(upper_right, lower_right,
                                 Orientation.VERTICAL, Alternation.EVEN, joint_steps, -sheet_thickness)),
-    lower_left = lower_right - Point(width - 2 * sheet_thickness, 0)
+    lower_left = lower_right - Point(width, 0)
     trace.extend(finger_notches(lower_right, lower_left,
                                 Orientation.HORIZONTAL, Alternation.EVEN, joint_steps, -sheet_thickness))
     trace.extend(finger_notches(lower_left, upper_left,
@@ -220,14 +220,14 @@ def draw_slots():
           Alternation.ODD, joint_steps, sheet_thickness)
 
     left_slots_from = Point(margin + height - floor_inset - sheet_thickness,
-                            margin + height + sheet_thickness)
-    left_slots_to = left_slots_from + Point(0, depth - 2 * sheet_thickness)
+                            margin + height)
+    left_slots_to = left_slots_from + Point(0, depth)
     slots(left_slots_from, left_slots_to, Orientation.VERTICAL,
           Alternation.ODD, joint_steps, sheet_thickness)
 
     right_slots_from = Point(margin + height + width + floor_inset,
-                             margin + height + sheet_thickness)
-    right_slots_to = right_slots_from + Point(0, depth - 2 * sheet_thickness)
+                             margin + height)
+    right_slots_to = right_slots_from + Point(0, depth)
     slots(right_slots_from, right_slots_to, Orientation.VERTICAL,
           Alternation.ODD, joint_steps, sheet_thickness)
 
