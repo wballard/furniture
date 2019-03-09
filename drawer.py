@@ -27,7 +27,7 @@ All units are in millimeters unless otherwise noted.
 # overall bounds of the drawer
 width = 40
 depth = 80
-height = 40
+height = 35
 
 # parameters controlling the drawer details
 sheet_thickness = 3.175
@@ -207,15 +207,15 @@ def draw_bottom():
 
 
 def draw_slots():
-    back_slots_from = Point(margin + height + sheet_thickness,
+    back_slots_from = Point(margin + height,
                             margin + height - floor_inset - sheet_thickness)
-    back_slots_to = back_slots_from + Point(width - 2 * sheet_thickness, 0)
+    back_slots_to = back_slots_from + Point(width, 0)
     slots(back_slots_from, back_slots_to, Orientation.HORIZONTAL,
           Alternation.ODD, joint_steps, sheet_thickness)
 
-    front_slots_from = Point(margin + height + sheet_thickness,
+    front_slots_from = Point(margin + height,
                              margin + height + depth + floor_inset)
-    front_slots_to = front_slots_from + Point(width - 2 * sheet_thickness, 0)
+    front_slots_to = front_slots_from + Point(width, 0)
     slots(front_slots_from, front_slots_to, Orientation.HORIZONTAL,
           Alternation.ODD, joint_steps, sheet_thickness)
 
