@@ -58,7 +58,7 @@ class LaserBox:
         self.configure()
         # now for the nice linear run making the SVG
         # the viewbox is the magic to allow all units to be mm
-        self.drawing = svgwrite.Drawing(filename,
+        self.drawing = svgwrite.Drawing(filename, profile='tiny',
                                         size=(f'{self.image_width}mm',
                                               f'{self.image_height}mm'),
                                         viewBox=(f'0 0 {self.image_width} {self.image_height}'))
@@ -237,9 +237,63 @@ class LaserBox:
         self.draw_front()
         self.draw_bottom()
         self.draw_slots()
-        self.drawing.save()
 
 
 #%%
 drawer = LaserBox('drawer.svg')
+drawer.drawing.save()
 display(SVG(drawer.drawing.tostring()))
+
+
+#%%
+class LaserDrawerCase(LaserBox):
+    def configure(self):
+        '''configure the overall dimensions'''
+        # overall bounds of the drawer
+        self.width = 40
+        self.depth = 60
+        self.height = 35
+
+        # parameters controlling the drawer details
+        self.sheet_thickness = 3.175
+        self.floor_inset = 0
+        self.slide_width = 0
+        self.joint_steps = 1
+
+        # the case will have stretchers
+        self.stretchers = 3
+        self.stretcher_depth = 5
+
+        # overall image size
+        self.image_width = self.width + 2*self.height
+        self.image_height = self.depth + 2 * self.height + self.stretchers * self.stretcher_depth
+        
+    def draw_stretchers(self):
+        stretcher_size = Point(self.width, self.stretcher_depth)
+        for i in range(self.stretchers):
+            upper_left = Point(0, self.depth + 2 * self.height + i * self.stretcher_depth)
+            self.drawing.add(self.drawing.rect(upper_left, stretcher_size, stroke='red'))
+
+    def draw_stretcher_slots(self):
+        # conceptually -- the depth of the box - 2 (each end)  - stretchers -- which are
+        # each one sheet thickness, then we have stretchers + 1 divisions
+        division = (self.depth - 2 * self.sheet_thickness - self.stretchers * self.sheet_thickness) / (self.stretchers + 1)
+        print(division)
+        stretcher_size = Point(self.stretcher_depth, self.sheet_thickness)
+        for i in range(self.stretchers):
+            y_at = self.height + (i + 1) * division + self.sheet_thickness + (i * self.sheet_thickness)
+            left_x_at = 0
+            right_x_at = 2 * self.height + self.width - self.stretcher_depth
+            self.drawing.add(self.drawing.rect(Point(left_x_at, y_at), stretcher_size, stroke='red'))
+            self.drawing.add(self.drawing.rect(Point(right_x_at, y_at), stretcher_size, stroke='red'))
+
+    def draw(self):
+        super().draw()
+        self.draw_stretchers()
+        self.draw_stretcher_slots()
+
+#%%
+case = LaserDrawerCase('case.svg')
+case.drawing.save()
+display(SVG(case.drawing.tostring()))
+
