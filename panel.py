@@ -5,12 +5,14 @@ from scipy.spatial import Voronoi, voronoi_plot_2d
 import cairosvg
 import PIL
 import subprocess
+import math
 
-# this is the number of areas to knock out
-tiles = 72
 # all units in 1pixel == 1mm
-scale = (1171, 526)
-width_of_lines = 18
+scale = (596, 191.5)
+width_of_lines = 12
+# this is the number of areas to knock out
+tiles = math.floor(scale[0] * scale[1] / width_of_lines ** 3)
+print(tiles)
 width_of_border_top = width_of_lines * 2
 width_of_border_sides = width_of_lines * 2
 drill_radius = 0
