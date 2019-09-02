@@ -8,11 +8,11 @@ import subprocess
 import math
 
 # all units in 1pixel == 1mm
+# settings for default facing on drawers
 scale = (596, 191.5)
 width_of_lines = 12
 # this is the number of areas to knock out
 tiles = math.floor(scale[0] * scale[1] / width_of_lines ** 3)
-print(tiles)
 width_of_border_top = width_of_lines * 2
 width_of_border_sides = width_of_lines * 2
 drill_radius = 0
