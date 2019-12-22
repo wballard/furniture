@@ -8,16 +8,44 @@ import subprocess
 import math
 
 # all units in 1pixel == 1mm
-scale = (596, 191.5)
-width_of_lines = 12
+# this is the size of the interior rectangle of the hexagon
+scale = (315, 176)
+# now compute the list of points making the surrounding hexagon
+# starting from the upper left
+a = math.pi / 6
+frame = [
+    (0, 0),
+    (scale[0], 0),
+    (scale[0] + (scale[1]/2) * math.tan(a), scale[1] / 2),
+    (scale[0], scale[1]),
+    (0, scale[1]),
+    (0 - (scale[1]/2) * math.tan(a), scale[1] / 2),
+]
+# this has gone negative -- so reset to zero based
+x_min = min((point[0] for point in frame))
+frame = [(point[0] - x_min, point[1]) for point in frame]
+#now get the new max and re-scale
+x_max = max((point[0] for point in frame))
+scale = (x_max, scale[1])
+width_of_lines = 6
+
+# inset the frame by the line width
+offsets = [
+    (0, width_of_lines),
+    (0, width_of_lines),
+    (-width_of_lines, 0),
+    (0, - width_of_lines),
+    (0, - width_of_lines),
+    (width_of_lines, 0)
+]
+frame = [ (f[0] + o[0], f[1] + o[1]) for (f, o) in zip(frame, offsets)]
+
 # this is the number of areas to knock out
 tiles = math.floor(scale[0] * scale[1] / width_of_lines ** 3)
-print(tiles)
 width_of_border_top = width_of_lines * 2
 width_of_border_sides = width_of_lines * 2
-drill_radius = 0
 
-
+# and here is the tesselation
 points = np.array([
     (np.random.rand(), np.random.rand()) for i in range(tiles)
 ])
@@ -46,38 +74,33 @@ for pointidx, simplex in zip(vor.ridge_points, vor.ridge_vertices):
 
         infinite_segments.append([vor.vertices[i], far_point])
 
-dwg = svgwrite.Drawing('panel.svg', size=scale)
-# overall frame -- double stroke since since half of the width will fall off the canvas
-dwg.add(dwg.rect((0, 0,), scale, fill='white',
-                 stroke='black', stroke_width=width_of_border_top*2))
-# the sides are a little thicker, and offset
-dwg.add(dwg.line((0, 0,), (0, scale[1]),
-                 stroke='black', stroke_width=width_of_border_sides*2))
-dwg.add(dwg.line((scale[0], 0,), (scale[0], scale[1]),
-                 stroke='black', stroke_width=width_of_border_sides*2))
+dwg = svgwrite.Drawing('rawpanel.svg', size=scale)
+
+# path frame -- this is a clipping region
+path = "M {x} {y} ".format(x=frame[0][0], y=frame[0][1])
+path += " ".join([" L {x} {y} ".format(x=point[0], y=point[1]) for point in frame[1:]])
+path += " Z"
+# and the actual frame
+dwg.add(dwg.path(d=path, stroke='black', stroke_width=width_of_lines, fill="white"))
 
 
-# all of the lines segments that outlines the cells
+# all of the lines segments that outlines the cells, this is clipped to the bounding frame
+clip_path = dwg.defs.add(dwg.clipPath(id="frame"))
+clip_path.add(dwg.path(d=path))
+voronoi_lines = dwg.defs.add(dwg.g(id="voronoi"))#, clip_path="url(#frame)"))
 for segment in (infinite_segments + finite_segments):
     from_point = segment[0] * scale
     to_point = segment[1] * scale
-    dwg.add(dwg.line(from_point, to_point, stroke='black',
-                     stroke_width=width_of_lines, stroke_linecap='round'))
+    dwg.add(dwg.line(from_point, to_point, stroke='black', stroke_width=width_of_lines, stroke_linecap='round', clip_path="url(#frame)"))
 
 
-# drill holes for attachment, this is done last since the cell strokes can overlap
-# the border -- these are ellipse shaped to give us a little play for alignment on onstall
-if drill_radius:
-  for x in [width_of_border_sides/2, scale[0] - width_of_border_sides/2]:
-      for y in [width_of_border_top, scale[1] / 2, scale[1] - width_of_border_top]:
-          print(x, y)
-          dwg.add(dwg.ellipse(center=(x, y), r=(
-              drill_radius*2, drill_radius), fill='white'))
+
+
 dwg.save()
 
 # this will go in and out of a bitmap to trace the knock out tiles, keeping the black linkes, removing the white
-cairosvg.svg2png(url='panel.svg', write_to='panel.png')
-png = PIL.Image.open('panel.png')
+cairosvg.svg2png(url='rawpanel.svg', write_to='rawpanel.png')
+png = PIL.Image.open('rawpanel.png')
 png.save('panel.bmp')
 subprocess.run("potrace --backend dxf panel.bmp --output panel.dxf", shell=True, check=True)
 subprocess.run("potrace --backend svg panel.bmp --output panel.svg", shell=True, check=True)
