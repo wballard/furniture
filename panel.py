@@ -8,8 +8,16 @@ import subprocess
 import math
 
 # all units in 1pixel == 1mm
+
+# this is the stroke width
+width_of_lines = 12
 # this is the size of the interior rectangle of the hexagon
 scale = (315, 176)
+
+# make this just proud in order to allow trimming
+scale = (scale[0] + 1, scale[1] + 1)
+
+
 # now compute the list of points making the surrounding hexagon
 # starting from the upper left
 a = math.pi / 6
@@ -21,27 +29,30 @@ frame = [
     (0, scale[1]),
     (0 - (scale[1]/2) * math.tan(a), scale[1] / 2),
 ]
-# this has gone negative -- so reset to zero based
+
+# inset the frame by half the line width
+line_width_offset = 0
+offsets = [
+    (0, line_width_offset),
+    (0, line_width_offset),
+    (-line_width_offset, 0),
+    (0, - line_width_offset),
+    (0, - line_width_offset),
+    (line_width_offset, 0)
+]
+frame = [(f[0] + o[0], f[1] + o[1]) for (f, o) in zip(frame, offsets)]
+
+# this has gone negative after the math -- so reset to zero based
 x_min = min((point[0] for point in frame))
-frame = [(point[0] - x_min, point[1]) for point in frame]
+frame = [(point[0] - x_min + line_width_offset, point[1]) for point in frame]
 #now get the new max and re-scale
 x_max = max((point[0] for point in frame))
 scale = (x_max, scale[1])
-width_of_lines = 6
 
-# inset the frame by the line width
-offsets = [
-    (0, width_of_lines),
-    (0, width_of_lines),
-    (-width_of_lines, 0),
-    (0, - width_of_lines),
-    (0, - width_of_lines),
-    (width_of_lines, 0)
-]
-frame = [ (f[0] + o[0], f[1] + o[1]) for (f, o) in zip(frame, offsets)]
+# all the lines are computed now -- so just expand the size of the canvas a bit
 
 # this is the number of areas to knock out
-tiles = math.floor(scale[0] * scale[1] / width_of_lines ** 3.8)
+tiles = math.floor(scale[0] * scale[1] / width_of_lines ** 3.1)
 
 # and here is the tesselation
 points = np.array([
@@ -83,7 +94,7 @@ path = "M {x} {y} ".format(x=frame[0][0], y=frame[0][1])
 path += " ".join([" L {x} {y} ".format(x=point[0], y=point[1]) for point in frame[1:]])
 path += " Z"
 # and the actual frame
-dwg.add(dwg.path(d=path, stroke='black', stroke_width=width_of_lines, fill="white"))
+dwg.add(dwg.path(d=path, stroke='black', stroke_width=width_of_lines * 2, fill="white"))
 
 
 # all of the lines segments that outlines the cells, this is clipped to the bounding frame
