@@ -41,9 +41,7 @@ offsets = [
 frame = [ (f[0] + o[0], f[1] + o[1]) for (f, o) in zip(frame, offsets)]
 
 # this is the number of areas to knock out
-tiles = math.floor(scale[0] * scale[1] / width_of_lines ** 3)
-width_of_border_top = width_of_lines * 2
-width_of_border_sides = width_of_lines * 2
+tiles = math.floor(scale[0] * scale[1] / width_of_lines ** 3.8)
 
 # and here is the tesselation
 points = np.array([
@@ -76,6 +74,10 @@ for pointidx, simplex in zip(vor.ridge_points, vor.ridge_vertices):
 
 dwg = svgwrite.Drawing('rawpanel.svg', size=scale)
 
+# a big white background
+dwg.add(dwg.rect(insert=(0, 0), size=scale, fill="white"))
+
+
 # path frame -- this is a clipping region
 path = "M {x} {y} ".format(x=frame[0][0], y=frame[0][1])
 path += " ".join([" L {x} {y} ".format(x=point[0], y=point[1]) for point in frame[1:]])
@@ -87,11 +89,11 @@ dwg.add(dwg.path(d=path, stroke='black', stroke_width=width_of_lines, fill="whit
 # all of the lines segments that outlines the cells, this is clipped to the bounding frame
 clip_path = dwg.defs.add(dwg.clipPath(id="frame"))
 clip_path.add(dwg.path(d=path))
-voronoi_lines = dwg.defs.add(dwg.g(id="voronoi"))#, clip_path="url(#frame)"))
+voronoi_lines = dwg.add(dwg.g(id="voronoi", clip_path="url(#frame)", stroke="black", stroke_width=width_of_lines))
 for segment in (infinite_segments + finite_segments):
     from_point = segment[0] * scale
     to_point = segment[1] * scale
-    dwg.add(dwg.line(from_point, to_point, stroke='black', stroke_width=width_of_lines, stroke_linecap='round', clip_path="url(#frame)"))
+    voronoi_lines.add(dwg.line(from_point, to_point))
 
 
 
