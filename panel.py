@@ -10,44 +10,47 @@ import math
 # all units in 1pixel == 1mm
 
 # this is the stroke width
-width_of_lines = 12
+width_of_lines = 6
 
-# this is the size of the interior rectangle of the hexagon
-scale = (610, 252)
+# this is the size of the interior rectangle 
+scale = (506, 1256)
+HEXAGON = False
 
 
 # now compute the list of points making the surrounding hexagon
 # starting from the far left
-a = math.pi / 6
-frame = [
-    (0, 0),
-    (scale[0], 0),
-    (scale[0] + (scale[1]/2) * math.tan(a), scale[1] / 2),
-    (scale[0], scale[1]),
-    (0, scale[1]),
-    (0 - (scale[1]/2) * math.tan(a), scale[1] / 2),
-]
-triangle_height = scale[1] / 2
-triangle_width = math.tan(a) + triangle_height
-frame = [
-    (0, triangle_height), # far left
-    (triangle_width, 0), # up and right
-    (scale[0] - triangle_width, 0), # further right
-    (scale[0], triangle_height), # right and down
-    (scale[0] - triangle_width, scale[1]), # back left -- and down
-    (triangle_width, scale[1]), # back left
-]
+frame = []
+if HEXAGON:
+    a = math.pi / 6
+    triangle_height = scale[1] / 2
+    triangle_width = math.tan(a) + triangle_height
+    frame = [
+        (0, triangle_height), # far left
+        (triangle_width, 0), # up and right
+        (scale[0] - triangle_width, 0), # further right
+        (scale[0], triangle_height), # right and down
+        (scale[0] - triangle_width, scale[1]), # back left -- and down
+        (triangle_width, scale[1]), # back left
+    ]
+else:
+    frame = [
+        (0, 0),
+        (0, scale[1]),
+        (scale[0], scale[1]),
+        (scale[0], 0)
+    ]
 
 # move the frame -- this makes space for the border
 frame = [(f[0] + width_of_lines*2, f[1] + width_of_lines*2) for f in frame]
 
-# and scale up the image
+# and scale up the image to make room for the border
 scale = (scale[0] + width_of_lines * 4, scale[1] + width_of_lines * 4)
 
 # all the lines are computed now -- so just expand the size of the canvas a bit
 
 # this is the number of areas to knock out
-tiles = math.floor(scale[0] * scale[1] / width_of_lines ** 3.1)
+average_tile = 75 ** 2
+tiles = math.floor(scale[0] * scale[1] / average_tile)
 
 # and here is the tesselation
 points = np.array([
