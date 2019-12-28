@@ -13,7 +13,8 @@ import math
 width_of_lines = 6
 
 # this is the size of the interior rectangle 
-scale = (506, 1256)
+# take out double the border to allow for frame lines to be drawn 
+scale = (376 - width_of_lines*2, 1300 - width_of_lines*2)
 HEXAGON = False
 
 
@@ -92,7 +93,7 @@ path = "M {x} {y} ".format(x=frame[0][0], y=frame[0][1])
 path += " ".join([" L {x} {y} ".format(x=point[0], y=point[1]) for point in frame[1:]])
 path += " Z"
 # and the actual frame
-dwg.add(dwg.path(d=path, stroke='black', stroke_width=width_of_lines, fill="white"))
+dwg.add(dwg.path(d=path, stroke='black', stroke_width=width_of_lines*2, fill="white"))
 
 
 # all of the lines segments that outlines the cells, this is clipped to the bounding frame
