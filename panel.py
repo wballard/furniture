@@ -8,20 +8,20 @@ import subprocess
 import math
 
 # all units in 1pixel == 1mm
-# settings for default facing on drawers
-scale = (596, 191.5)
-width_of_lines = 12
+# width, height
+scale = (900, 100)
+width_of_lines = 4
+width_of_sides = width_of_lines * 2
 # this is the number of areas to knock out
-tiles = math.floor(scale[0] * scale[1] / width_of_lines ** 3)
-width_of_border_top = width_of_lines * 2
-width_of_border_sides = width_of_lines * 2
-drill_radius = 0
+tiles = 200
+drill_radius = 1
 
 
 points = np.array([
     (np.random.rand(), np.random.rand()) for i in range(tiles)
 ])
 vor = Voronoi(points)
+print(f"tiles {tiles}")
 
 
 # borrowed from the internals of voronoi_plot_2d
@@ -47,32 +47,36 @@ for pointidx, simplex in zip(vor.ridge_points, vor.ridge_vertices):
         infinite_segments.append([vor.vertices[i], far_point])
 
 dwg = svgwrite.Drawing('panel.svg', size=scale)
-# overall frame -- double stroke since since half of the width will fall off the canvas
+# overall frame 
+# -- remember half of the width will fall off the canvas
 dwg.add(dwg.rect((0, 0,), scale, fill='white',
-                 stroke='black', stroke_width=width_of_border_top*2))
-# the sides are a little thicker, and offset
-dwg.add(dwg.line((0, 0,), (0, scale[1]),
-                 stroke='black', stroke_width=width_of_border_sides*2))
-dwg.add(dwg.line((scale[0], 0,), (scale[0], scale[1]),
-                 stroke='black', stroke_width=width_of_border_sides*2))
+                 stroke='black', stroke_width=width_of_sides*2))
+# the sides - -need room to fold a tab
+# to serve as a mounting point
+dwg.add(dwg.rect((0, 0,), (width_of_sides*3, scale[1]), fill='black'))
+dwg.add(dwg.rect((scale[0]-width_of_sides*3, 0,), (scale[0], scale[1]), fill='black'))
 
 
-# all of the lines segments that outlines the cells
+# all of the lines segments that outline the cells
 for segment in (infinite_segments + finite_segments):
     from_point = segment[0] * scale
     to_point = segment[1] * scale
     dwg.add(dwg.line(from_point, to_point, stroke='black',
                      stroke_width=width_of_lines, stroke_linecap='round'))
 
+# nibble the cornes to allow bends
+nibble_size = (width_of_sides * 2 , width_of_lines)
+dwg.add(dwg.rect((0, 0,), nibble_size, fill='white'))
+dwg.add(dwg.rect((0, scale[1]-nibble_size[1],), nibble_size, fill='white'))
+dwg.add(dwg.rect((scale[0]-width_of_sides*2, 0,), nibble_size, fill='white'))
+dwg.add(dwg.rect((scale[0]-width_of_sides*2, scale[1]-nibble_size[1],), nibble_size, fill='white'))
+
 
 # drill holes for attachment, this is done last since the cell strokes can overlap
-# the border -- these are ellipse shaped to give us a little play for alignment on onstall
 if drill_radius:
-  for x in [width_of_border_sides/2, scale[0] - width_of_border_sides/2]:
-      for y in [width_of_border_top, scale[1] / 2, scale[1] - width_of_border_top]:
-          print(x, y)
-          dwg.add(dwg.ellipse(center=(x, y), r=(
-              drill_radius*2, drill_radius), fill='white'))
+  for y in [scale[1] / 2]:
+      for x in [width_of_sides/2, scale[0] - width_of_sides/2]:
+          dwg.add(dwg.circle(center=(x, y), r=drill_radius, fill='white'))
 dwg.save()
 
 # this will go in and out of a bitmap to trace the knock out tiles, keeping the black linkes, removing the white
