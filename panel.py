@@ -9,9 +9,8 @@ import math
 
 # all units in 1pixel == 1mm
 # width, height
-scale = (900, 100)
-width_of_lines = 4
-width_of_sides = width_of_lines * 2
+scale = (1000, 100)
+width_of_lines = 10
 # this is the number of areas to knock out
 tiles = 200
 drill_radius = 1
@@ -47,14 +46,17 @@ for pointidx, simplex in zip(vor.ridge_points, vor.ridge_vertices):
         infinite_segments.append([vor.vertices[i], far_point])
 
 dwg = svgwrite.Drawing('panel.svg', size=scale)
-# overall frame 
-# -- remember half of the width will fall off the canvas
-dwg.add(dwg.rect((0, 0,), scale, fill='white',
-                 stroke='black', stroke_width=width_of_sides*2))
+# white background -- see through too it
+dwg.add(dwg.rect((0, 0,), scale, fill='white',))
+
 # the sides - -need room to fold a tab
 # to serve as a mounting point
-dwg.add(dwg.rect((0, 0,), (width_of_sides*3, scale[1]), fill='black'))
-dwg.add(dwg.rect((scale[0]-width_of_sides*3, 0,), (scale[0], scale[1]), fill='black'))
+dwg.add(dwg.rect((0, 0,), (width_of_lines*3, scale[1]), fill='black'))
+dwg.add(dwg.rect((scale[0]-width_of_lines*3, 0,), (scale[0], scale[1]), fill='black'))
+
+# top and bottom have enough for a frame and a bend
+dwg.add(dwg.rect((0, 0,), (scale[0], width_of_lines*2), fill='black'))
+dwg.add(dwg.rect((0, scale[1]-width_of_lines*2,), (scale[0], width_of_lines*2), fill='black'))
 
 
 # all of the lines segments that outline the cells
@@ -62,20 +64,23 @@ for segment in (infinite_segments + finite_segments):
     from_point = segment[0] * scale
     to_point = segment[1] * scale
     dwg.add(dwg.line(from_point, to_point, stroke='black',
-                     stroke_width=width_of_lines, stroke_linecap='round'))
+                     stroke_width=width_of_lines/2, stroke_linecap='round'))
 
 # nibble the cornes to allow bends
-nibble_size = (width_of_sides * 2 , width_of_lines)
+# nibble even more to make the ends into mounting tabs
+tab_size = 36
+nibble_height = (scale[1] - tab_size) / 2
+nibble_size = (width_of_lines * 2 , nibble_height)
 dwg.add(dwg.rect((0, 0,), nibble_size, fill='white'))
 dwg.add(dwg.rect((0, scale[1]-nibble_size[1],), nibble_size, fill='white'))
-dwg.add(dwg.rect((scale[0]-width_of_sides*2, 0,), nibble_size, fill='white'))
-dwg.add(dwg.rect((scale[0]-width_of_sides*2, scale[1]-nibble_size[1],), nibble_size, fill='white'))
+dwg.add(dwg.rect((scale[0]-width_of_lines*2, 0,), nibble_size, fill='white'))
+dwg.add(dwg.rect((scale[0]-width_of_lines*2, scale[1]-nibble_size[1],), nibble_size, fill='white'))
 
 
 # drill holes for attachment, this is done last since the cell strokes can overlap
 if drill_radius:
   for y in [scale[1] / 2]:
-      for x in [width_of_sides/2, scale[0] - width_of_sides/2]:
+      for x in [width_of_lines/2, scale[0] - width_of_lines/2]:
           dwg.add(dwg.circle(center=(x, y), r=drill_radius, fill='white'))
 dwg.save()
 
